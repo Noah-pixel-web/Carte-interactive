@@ -14,24 +14,25 @@ html, body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* ================= MAP ================= */
+/* ===== MAP ===== */
 #map {
   height: 100%;
-  width: calc(100% - 460px);
+  width: 100%;
 }
 
-/* ================= PANEL ================= */
+/* ===== PANEL OVERLAY ===== */
 #panel {
   position: fixed;
   top: 0;
   right: 0;
-  width: 460px;
+  width: 440px;
   height: 100%;
   background: #ffffff;
-  box-shadow: -4px 0 15px rgba(0,0,0,0.25);
+  box-shadow: -4px 0 15px rgba(0,0,0,0.3);
   padding: 20px;
   overflow-y: auto;
-  display: none; /* caché par défaut */
+  display: none;
+  z-index: 1000;
 }
 
 #panel h2 {
@@ -47,7 +48,7 @@ html, body {
   cursor: pointer;
 }
 
-/* ================= BADGES ================= */
+/* ===== BADGES ===== */
 .badge {
   display: inline-block;
   padding: 6px 10px;
@@ -60,7 +61,7 @@ html, body {
 .inside { background: #c8f7c5; }
 .outside { background: #f7c5c5; }
 
-/* ================= TABLE ================= */
+/* ===== TABLE ===== */
 table {
   width: 100%;
   border-collapse: collapse;
@@ -79,7 +80,7 @@ th {
   color: white;
 }
 
-/* ================= LEGEND ================= */
+/* ===== LEGEND ===== */
 #legend {
   position: fixed;
   bottom: 20px;
@@ -89,6 +90,7 @@ th {
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.3);
   font-size: 14px;
+  z-index: 900;
 }
 </style>
 </head>
@@ -96,7 +98,6 @@ th {
 <body>
 
 <div id="map"></div>
-
 <div id="panel"></div>
 
 <div id="legend">
@@ -106,18 +107,18 @@ th {
 </div>
 
 <script>
-/* ================= PARAMÈTRES ================= */
+/* ===== PARAMÈTRES ===== */
 const ORANGE_BLEUE = { lat: 41.4305, lng: 2.1840 };
 const RAYON = 2000;
 
-/* ================= MAP ================= */
+/* ===== MAP ===== */
 const map = L.map("map").setView([ORANGE_BLEUE.lat, ORANGE_BLEUE.lng], 13);
 
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   attribution: "© OpenStreetMap"
 }).addTo(map);
 
-// L’Orange Bleue
+// Orange Bleue
 L.circleMarker([ORANGE_BLEUE.lat, ORANGE_BLEUE.lng], {
   radius: 10,
   fillColor: "#ff6a00",
@@ -133,7 +134,7 @@ L.circle([ORANGE_BLEUE.lat, ORANGE_BLEUE.lng], {
   fillOpacity: 0.15
 }).addTo(map);
 
-/* ================= OUTILS ================= */
+/* ===== OUTILS ===== */
 function distanceKm(lat, lng) {
   return (map.distance(
     [ORANGE_BLEUE.lat, ORANGE_BLEUE.lng],
@@ -167,68 +168,94 @@ function renderOffers(offers) {
   return html;
 }
 
-/* ================= DONNÉES SALLES ================= */
+/* ===== DONNÉES SALLES (TOUTES) ===== */
 const gyms = [
-{
-  name: "Cobosu Gym Station",
-  lat: 41.4282,
-  lng: 2.1813,
-  address: "Carrer de la Riera d’Horta, Barcelona",
-  offers: [
-    { formule:"Tarifs", prix:"Non publiés", acces:"—", remarque:"Contact direct" }
-  ]
-},
-{
-  name: "Nick Spa & Sport Club",
-  lat: 41.4388,
-  lng: 2.1864,
-  address: "Carrer de Portugal, Barcelona",
-  offers: [
-    { formule:"Accès limité", prix:"77,95 €/mois", acces:"Gym + spa", remarque:"Créneaux restreints" },
-    { formule:"Accès libre", prix:"99,95 €/mois", acces:"Full access", remarque:"Premium" }
-  ]
-},
-{
-  name: "VivaGym Meridiana",
-  lat: 41.4354,
-  lng: 2.1881,
-  address: "Avinguda Meridiana, Barcelona",
-  offers: [
-    { formule:"Cuota ONE", prix:"≈ 29,90 €/mois", acces:"Club local", remarque:"Sans engagement" }
-  ]
-}
+  {
+    name:"Club Esports Fabra Gym",
+    lat:41.4335,lng:2.1831,
+    address:"Carrer de Sant Antoni Maria Claret, Barcelona",
+    offers:[
+      {formule:"Abonnement mensuel",prix:"≈ 50 €/mois",acces:"Musculation & fitness",remarque:"Indicatif"},
+      {formule:"Abonnement trimestriel",prix:"Non communiqué",acces:"Idem",remarque:"À demander"},
+      {formule:"Abonnement annuel",prix:"Non communiqué",acces:"Complet",remarque:"Plus avantageux"},
+      {formule:"Frais d’inscription",prix:"Variable",acces:"Carte",remarque:"Parfois offerts"},
+      {formule:"Cours collectifs",prix:"Inclus / option",acces:"Selon formule",remarque:""},
+      {formule:"Accès libre",prix:"Inclus",acces:"Horaires d’ouverture",remarque:""}
+    ]
+  },
+  {
+    name:"Nick Spa & Sport Club",
+    lat:41.4388,lng:2.1864,
+    address:"Carrer de Portugal, Barcelona",
+    offers:[
+      {formule:"Accès limité",prix:"77,95 €/mois",acces:"Gym + spa",remarque:"Créneaux"},
+      {formule:"Accès libre",prix:"99,95 €/mois",acces:"Tout inclus",remarque:"Premium"}
+    ]
+  },
+  {
+    name:"VivaGym Meridiana",
+    lat:41.4354,lng:2.1881,
+    address:"Avinguda Meridiana, Barcelona",
+    offers:[
+      {formule:"Cuota ONE",prix:"29,90 €/mois",acces:"Club local",remarque:"Sans engagement"},
+      {formule:"Cuota FLEX",prix:"34,90 €/mois",acces:"Zone",remarque:""},
+      {formule:"Cuota PRIME",prix:"≈ 37 €/mois",acces:"Tous clubs",remarque:""}
+    ]
+  },
+  {
+    name:"VivaGym Pegàs",
+    lat:41.4317,lng:2.1916,
+    address:"Carrer del Pegàs, Barcelona",
+    offers:[
+      {formule:"Cuota ONE",prix:"29,90 €/mois",acces:"Club local",remarque:""},
+      {formule:"Cuota FLEX",prix:"34,90 €/mois",acces:"Zone",remarque:""}
+    ]
+  },
+  {
+    name:"Entrena-T 24h Sant Andreu",
+    lat:41.4361,lng:2.1889,
+    address:"Sant Andreu, Barcelona",
+    offers:[
+      {formule:"Cuota mensual",prix:"47,90 €/mois",acces:"24h/24",remarque:""},
+      {formule:"Cuota ahorro",prix:"39,92 €/mois",acces:"Accès complet",remarque:"Prépayé"}
+    ]
+  },
+  {
+    name:"Cobosu Gym Station",
+    lat:41.4282,lng:2.1813,
+    address:"Riera d’Horta, Barcelona",
+    offers:[
+      {formule:"Tarifs",prix:"Non publiés",acces:"—",remarque:"Contact direct"}
+    ]
+  }
 ];
 
-/* ================= MARQUEURS ================= */
-gyms.forEach(gym => {
-  const d = distanceKm(gym.lat, gym.lng);
-  const inside = d <= 2;
+/* ===== MARQUEURS ===== */
+gyms.forEach(gym=>{
+  const d = distanceKm(gym.lat,gym.lng);
+  const inside = d<=2;
 
-  L.circleMarker([gym.lat, gym.lng], {
-    radius: 8,
-    fillColor: inside ? "#2ecc71" : "#e74c3c",
-    color: "#ffffff",
-    weight: 2,
-    fillOpacity: 0.9
+  L.circleMarker([gym.lat,gym.lng],{
+    radius:8,
+    fillColor:inside?"#2ecc71":"#e74c3c",
+    color:"#fff",
+    weight:2,
+    fillOpacity:0.9
   })
   .addTo(map)
-  .bindTooltip(gym.name, { direction: "top", offset: [0,-10] })
-  .on("click", () => {
-    document.getElementById("panel").innerHTML = `
+  .bindTooltip(gym.name)
+  .on("click",()=>{
+    document.getElementById("panel").innerHTML=`
       <button class="close-btn" onclick="closePanel()">✖</button>
       <h2>${gym.name}</h2>
-
       <p><strong>Adresse :</strong><br>${gym.address}</p>
-
-      <span class="badge ${inside ? "inside" : "outside"}">
-        ${inside ? "Dans le périmètre (≤ 2 km)" : "Hors périmètre (> 2 km)"}
+      <span class="badge ${inside?"inside":"outside"}">
+        ${inside?"Dans le périmètre (≤ 2 km)":"Hors périmètre (> 2 km)"}
       </span>
-
       <p><strong>Distance :</strong> ${d} km</p>
-
       ${renderOffers(gym.offers)}
     `;
-    document.getElementById("panel").style.display = "block";
+    document.getElementById("panel").style.display="block";
   });
 });
 </script>
