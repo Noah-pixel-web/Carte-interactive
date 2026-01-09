@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>Carte concurrentielle – L’Orange Bleue</title>
+<title>Analyse concurrentielle – L’Orange Bleue</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -25,15 +25,34 @@ html, body {
   left: 20px;
   background: white;
   padding: 15px;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-  max-width: 360px;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+  max-width: 420px;
+  max-height: 70%;
+  overflow-y: auto;
   display: none;
 }
 
 #info h3 {
   margin-top: 0;
   color: #ff6a00;
+}
+
+#info table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  font-size: 14px;
+}
+
+#info th, #info td {
+  border: 1px solid #ddd;
+  padding: 6px;
+}
+
+#info th {
+  background: #ff6a00;
+  color: white;
 }
 
 .legend {
@@ -55,18 +74,14 @@ html, body {
 <div id="info"></div>
 
 <div class="legend">
-  🟠 L’Orange Bleue<br>
-  🟢 Salle ≤ 2 km<br>
-  🔴 Salle > 2 km
+🟠 L’Orange Bleue<br>
+🟢 Concurrent ≤ 2 km<br>
+🔴 Concurrent > 2 km
 </div>
 
 <script>
 // ================= ORANGE BLEUE =================
-const orangeBleue = {
-  name: "L’Orange Bleue",
-  lat: 41.4305,
-  lng: 2.1840
-};
+const orangeBleue = { lat: 41.4305, lng: 2.1840 };
 
 const map = L.map("map").setView([orangeBleue.lat, orangeBleue.lng], 13);
 
@@ -74,7 +89,6 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   attribution: "© OpenStreetMap"
 }).addTo(map);
 
-// Marqueur Orange Bleue
 L.marker([orangeBleue.lat, orangeBleue.lng], {
   icon: L.icon({
     iconUrl: "https://maps.gstatic.com/mapfiles/ms2/micons/orange.png",
@@ -83,7 +97,6 @@ L.marker([orangeBleue.lat, orangeBleue.lng], {
   })
 }).addTo(map).bindPopup("🏋️ L’Orange Bleue");
 
-// Cercle 2 km
 L.circle([orangeBleue.lat, orangeBleue.lng], {
   radius: 2000,
   color: "#ff6a00",
@@ -93,10 +106,7 @@ L.circle([orangeBleue.lat, orangeBleue.lng], {
 
 // ================= OUTILS =================
 function distanceKm(lat, lng) {
-  return map.distance(
-    [orangeBleue.lat, orangeBleue.lng],
-    [lat, lng]
-  ) / 1000;
+  return map.distance([orangeBleue.lat, orangeBleue.lng], [lat, lng]) / 1000;
 }
 
 const infoBox = document.getElementById("info");
@@ -108,22 +118,61 @@ function showInfo(html) {
 
 // ================= SALLES =================
 const gyms = [
-  { name:"Club Esports Fabra Gym", lat:41.4335, lng:2.1831, prix:"≈ 50 €/mois", type:"Fitness" },
-  { name:"Nick Spa & Sport Club", lat:41.4388, lng:2.1864, prix:"77,95 – 99,95 €", type:"Gym + Spa" },
-  { name:"Gimnàs Sport Club", lat:41.4269, lng:2.1795, prix:"44 €/mois", type:"Fitness" },
-  { name:"Puro Impacto", lat:41.4298, lng:2.1762, prix:"45 – 119 €", type:"Sports de combat" },
-  { name:"VivaGym Meridiana", lat:41.4354, lng:2.1881, prix:"≈ 29,90 €", type:"Low-cost" },
-  { name:"VivaGym Pegàs", lat:41.4317, lng:2.1916, prix:"≈ 29,90 €", type:"Low-cost" },
-  { name:"Entrena-T 24h", lat:41.4361, lng:2.1889, prix:"47,90 €", type:"24h/24" },
-  { name:"Club Natació Sant Andreu", lat:41.4359, lng:2.1853, prix:"≈ 48 €", type:"Piscine + gym" },
-  { name:"Cobosu Gym Station", lat:41.4282, lng:2.1813, prix:"Sur demande", type:"Indépendant" },
-  { name:"CEM Guinardó", lat:41.4188, lng:2.1734, prix:"55,85 €", type:"Municipal" },
-  { name:"DIR Alcúdia", lat:41.4381, lng:2.1820, prix:"≈ 45 €", type:"Premium" },
-  { name:"DIR Maragall", lat:41.4219, lng:2.1730, prix:"≈ 48 €", type:"Premium" },
-  { name:"Synergym Fabra i Puig", lat:41.4332, lng:2.1819, prix:"≈ 22 €", type:"Low-cost" },
-  { name:"Synergym Maragall", lat:41.4214, lng:2.1708, prix:"≈ 23 €", type:"Low-cost" },
-  { name:"CEM Cotxeres Borbó", lat:41.4290, lng:2.1745, prix:"Sur place", type:"Municipal" },
-  { name:"Forus Can Dragó", lat:41.4323, lng:2.1701, prix:"≈ 68 €", type:"Premium" }
+{
+  name: "Club Esports Fabra Gym",
+  lat: 41.4335,
+  lng: 2.1831,
+  details: `
+  <h3>Club Esports Fabra Gym</h3>
+  <p><strong>Type :</strong> Salle indépendante</p>
+  <p><strong>Distance :</strong> {{DIST}} km</p>
+  <table>
+    <tr><th>Formule</th><th>Prix</th><th>Accès</th><th>Remarques</th></tr>
+    <tr><td>Mensuel</td><td>≈ 50 €</td><td>Musculation & fitness</td><td>Standard</td></tr>
+    <tr><td>Annuel</td><td>Non communiqué</td><td>Complet</td><td>Avantageux</td></tr>
+  </table>`
+},
+{
+  name: "Nick Spa & Sport Club",
+  lat: 41.4388,
+  lng: 2.1864,
+  details: `
+  <h3>Nick Spa & Sport Club</h3>
+  <p><strong>Type :</strong> Premium / Spa</p>
+  <p><strong>Distance :</strong> {{DIST}} km</p>
+  <table>
+    <tr><th>Formule</th><th>Prix</th><th>Accès</th><th>Remarques</th></tr>
+    <tr><td>Accès limité</td><td>77,95 €</td><td>Gym + Spa</td><td>Horaires restreints</td></tr>
+    <tr><td>Accès libre</td><td>99,95 €</td><td>Tout inclus</td><td>Premium</td></tr>
+  </table>`
+},
+{
+  name: "VivaGym Meridiana",
+  lat: 41.4354,
+  lng: 2.1881,
+  details: `
+  <h3>VivaGym Meridiana</h3>
+  <p><strong>Type :</strong> Low-cost</p>
+  <p><strong>Distance :</strong> {{DIST}} km</p>
+  <table>
+    <tr><th>Plan</th><th>Prix</th><th>Accès</th><th>Remarques</th></tr>
+    <tr><td>ONE</td><td>29,90 €</td><td>Club local</td><td>Sans engagement</td></tr>
+  </table>`
+},
+{
+  name: "Puro Impacto",
+  lat: 41.4298,
+  lng: 2.1762,
+  details: `
+  <h3>Puro Impacto</h3>
+  <p><strong>Type :</strong> Sports de combat</p>
+  <p><strong>Distance :</strong> {{DIST}} km</p>
+  <table>
+    <tr><th>Pack</th><th>Prix</th><th>Accès</th><th>Remarques</th></tr>
+    <tr><td>Fitness</td><td>45 €</td><td>Muscu</td><td>+ inscription</td></tr>
+    <tr><td>Fight Club</td><td>79 €</td><td>Boxe / MMA</td><td>Spécialisé</td></tr>
+  </table>`
+}
 ];
 
 // ================= MARQUEURS =================
@@ -139,17 +188,13 @@ gyms.forEach(gym => {
     iconAnchor: [14,28]
   });
 
-  L.marker([gym.lat, gym.lng], {icon})
+  L.marker([gym.lat, gym.lng], { icon })
     .addTo(map)
-    .bindPopup(gym.name)
     .on("click", () => {
-      showInfo(`
-        <h3>${gym.name}</h3>
-        <p><strong>Type :</strong> ${gym.type}</p>
-        <p><strong>Prix :</strong> ${gym.prix}</p>
-        <p><strong>Distance :</strong> ${d.toFixed(2)} km</p>
-        <p><strong>Zone :</strong> ${inside ? "Dans le périmètre" : "Hors périmètre"}</p>
-      `);
+      showInfo(
+        gym.details.replace("{{DIST}}", d.toFixed(2)) +
+        `<p><strong>Zone :</strong> ${inside ? "Dans le périmètre (≤ 2 km)" : "Hors périmètre (> 2 km)"}</p>`
+      );
     });
 });
 </script>
