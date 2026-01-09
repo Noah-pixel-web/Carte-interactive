@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>Analyse concurrentielle – L’Orange Bleue</title>
+<title>Carte concurrentielle – L’Orange Bleue</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -14,21 +14,24 @@ html, body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* ================= MAP ================= */
 #map {
   height: 100%;
-  width: calc(100% - 480px);
+  width: calc(100% - 460px);
 }
 
+/* ================= PANEL ================= */
 #panel {
   position: fixed;
   top: 0;
   right: 0;
-  width: 480px;
+  width: 460px;
   height: 100%;
-  background: #fff;
+  background: #ffffff;
   box-shadow: -4px 0 15px rgba(0,0,0,0.25);
   padding: 20px;
   overflow-y: auto;
+  display: none; /* caché par défaut */
 }
 
 #panel h2 {
@@ -36,10 +39,19 @@ html, body {
   color: #ff6a00;
 }
 
+.close-btn {
+  float: right;
+  border: none;
+  background: none;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+/* ================= BADGES ================= */
 .badge {
   display: inline-block;
   padding: 6px 10px;
-  margin: 5px 5px 5px 0;
+  margin: 6px 6px 6px 0;
   font-size: 12px;
   border-radius: 6px;
   background: #eee;
@@ -48,6 +60,7 @@ html, body {
 .inside { background: #c8f7c5; }
 .outside { background: #f7c5c5; }
 
+/* ================= TABLE ================= */
 table {
   width: 100%;
   border-collapse: collapse;
@@ -66,6 +79,7 @@ th {
   color: white;
 }
 
+/* ================= LEGEND ================= */
 #legend {
   position: fixed;
   bottom: 20px;
@@ -82,10 +96,8 @@ th {
 <body>
 
 <div id="map"></div>
-<div id="panel">
-  <h2>Sélectionne une salle</h2>
-  <p>Clique sur un marqueur pour afficher toutes les informations.</p>
-</div>
+
+<div id="panel"></div>
 
 <div id="legend">
 🟠 L’Orange Bleue<br>
@@ -98,19 +110,23 @@ th {
 const ORANGE_BLEUE = { lat: 41.4305, lng: 2.1840 };
 const RAYON = 2000;
 
-/* ================= CARTE ================= */
+/* ================= MAP ================= */
 const map = L.map("map").setView([ORANGE_BLEUE.lat, ORANGE_BLEUE.lng], 13);
 
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  attribution: "© OpenStreetMap"
+}).addTo(map);
 
-// Marqueur Orange Bleue
-L.marker([ORANGE_BLEUE.lat, ORANGE_BLEUE.lng], {
-  icon: L.icon({
-    iconUrl: "https://maps.gstatic.com/mapfiles/ms2/micons/orange.png",
-    iconSize: [32,32]
-  })
-}).addTo(map).bindPopup("🏋️ L’Orange Bleue");
+// L’Orange Bleue
+L.circleMarker([ORANGE_BLEUE.lat, ORANGE_BLEUE.lng], {
+  radius: 10,
+  fillColor: "#ff6a00",
+  color: "#fff",
+  weight: 2,
+  fillOpacity: 1
+}).addTo(map).bindTooltip("L’Orange Bleue");
 
+// Zone 2 km
 L.circle([ORANGE_BLEUE.lat, ORANGE_BLEUE.lng], {
   radius: RAYON,
   color: "#ff6a00",
@@ -123,6 +139,10 @@ function distanceKm(lat, lng) {
     [ORANGE_BLEUE.lat, ORANGE_BLEUE.lng],
     [lat, lng]
   ) / 1000).toFixed(2);
+}
+
+function closePanel() {
+  document.getElementById("panel").style.display = "none";
 }
 
 function renderOffers(offers) {
@@ -150,99 +170,31 @@ function renderOffers(offers) {
 /* ================= DONNÉES SALLES ================= */
 const gyms = [
 {
-  name: "Club Esports Fabra Gym",
-  lat: 41.4335, lng: 2.1831,
+  name: "Cobosu Gym Station",
+  lat: 41.4282,
+  lng: 2.1813,
+  address: "Carrer de la Riera d’Horta, Barcelona",
   offers: [
-    {formule:"Abonnement mensuel", prix:"≈ 50 € / mois", acces:"Musculation & fitness", remarque:"Tarif indicatif"},
-    {formule:"Abonnement trimestriel", prix:"Non communiqué", acces:"Idem mensuel", remarque:"À demander"},
-    {formule:"Abonnement annuel", prix:"Non communiqué", acces:"Accès complet", remarque:"Plus avantageux"},
-    {formule:"Frais d’inscription", prix:"Variable", acces:"Carte + inscription", remarque:"Parfois offerts"},
-    {formule:"Cours collectifs", prix:"Inclus / option", acces:"Selon formule", remarque:"À confirmer"},
-    {formule:"Accès libre", prix:"Inclus", acces:"Horaires d’ouverture", remarque:""}
+    { formule:"Tarifs", prix:"Non publiés", acces:"—", remarque:"Contact direct" }
   ]
 },
 {
   name: "Nick Spa & Sport Club",
-  lat: 41.4388, lng: 2.1864,
+  lat: 41.4388,
+  lng: 2.1864,
+  address: "Carrer de Portugal, Barcelona",
   offers: [
-    {formule:"Accès limité", prix:"77,95 €/mois", acces:"Gym + installations", remarque:"Créneaux restreints"},
-    {formule:"Accès limité (6 mois)", prix:"≈ 70,16 €/mois", acces:"Même accès", remarque:"Paiement semestriel"},
-    {formule:"Accès libre", prix:"99,95 €/mois", acces:"Gym + spa", remarque:"Full access"},
-    {formule:"Accès libre (6 mois)", prix:"≈ 89,96 €/mois", acces:"Même accès", remarque:"Paiement semestriel"},
-    {formule:"Invitations invités", prix:"Inclus", acces:"Jusqu’à 3 invités", remarque:"Sur réservation"}
-  ]
-},
-{
-  name: "Gimnàs Sport Club",
-  lat: 41.4269, lng: 2.1795,
-  offers: [
-    {formule:"Abonnement mensuel", prix:"44 € / mois", acces:"Musculation & fitness", remarque:"Tarif standard"},
-    {formule:"Frais d’inscription", prix:"48 €", acces:"Carte + ouverture", remarque:"Unique"},
-    {formule:"Séance ponctuelle", prix:"15 €", acces:"Entrée unique", remarque:"Sans abonnement"}
-  ]
-},
-{
-  name: "Puro Impacto",
-  lat: 41.4298, lng: 2.1762,
-  offers: [
-    {formule:"Fitness – 1 mois", prix:"45 €/mois", acces:"Muscu & cardio", remarque:"+ matrícula 50 €"},
-    {formule:"Fitness – 12 mois", prix:"≈ 33,75 €/mois", acces:"Muscu & cardio", remarque:"Paiement anticipé"},
-    {formule:"Fight Club", prix:"79 €/mois", acces:"Sports de combat", remarque:"Boxe / MMA"},
-    {formule:"Elite Combat", prix:"119,90 €/mois", acces:"Combat complet", remarque:"Premium"},
-    {formule:"Mantenimiento", prix:"15 €/mois", acces:"Dossier actif", remarque:""}
+    { formule:"Accès limité", prix:"77,95 €/mois", acces:"Gym + spa", remarque:"Créneaux restreints" },
+    { formule:"Accès libre", prix:"99,95 €/mois", acces:"Full access", remarque:"Premium" }
   ]
 },
 {
   name: "VivaGym Meridiana",
-  lat: 41.4354, lng: 2.1881,
+  lat: 41.4354,
+  lng: 2.1881,
+  address: "Avinguda Meridiana, Barcelona",
   offers: [
-    {formule:"Cuota ONE", prix:"≈ 29,90 €/mois", acces:"Club local", remarque:"Sans engagement"},
-    {formule:"Cuota FLEX", prix:"≈ 34,90 €/mois", acces:"Zone", remarque:"Flexible"},
-    {formule:"Cuota PRIME", prix:"≈ 37 €/mois", acces:"Tous clubs", remarque:"Premium"},
-    {formule:"Pass 1 jour", prix:"≈ 9–10 €", acces:"1 journée", remarque:"Test"}
-  ]
-},
-{
-  name: "VivaGym Pegàs",
-  lat: 41.4317, lng: 2.1916,
-  offers: [
-    {formule:"Cuota ONE", prix:"≈ 29,90 €/mois", acces:"Club local", remarque:"Basique"},
-    {formule:"Cuota FLEX", prix:"≈ 34,90 €/mois", acces:"Zone", remarque:""},
-    {formule:"Cuota PRIME", prix:"≈ 37 €/mois", acces:"Tous clubs", remarque:""}
-  ]
-},
-{
-  name: "Entrena-T 24h Sant Andreu",
-  lat: 41.4361, lng: 2.1889,
-  offers: [
-    {formule:"Cuota mensual", prix:"47,90 €/mois", acces:"24h/24 – 7j/7", remarque:"Sans engagement"},
-    {formule:"Cuota ahorro", prix:"39,92 €/mois", acces:"Accès complet", remarque:"Prépayé"},
-    {formule:"Promo mensuelle", prix:"≈ 7,18 €", acces:"Accès complet", remarque:"Offre ponctuelle"}
-  ]
-},
-{
-  name: "Club Natació Sant Andreu",
-  lat: 41.4359, lng: 2.1853,
-  offers: [
-    {formule:"Abonnement mensuel", prix:"≈ 48,80 €", acces:"Piscine + gym", remarque:""},
-    {formule:"Entrée ponctuelle", prix:"≈ 7,40 €", acces:"1 journée", remarque:""},
-    {formule:"Soci juvenil", prix:"≈ 32,91 €", acces:"Installations", remarque:"Jeunes"}
-  ]
-},
-{
-  name: "Cobosu Gym Station",
-  lat: 41.4282, lng: 2.1813,
-  offers: [
-    {formule:"Tarifs", prix:"Non publiés", acces:"—", remarque:"Contact direct"}
-  ]
-},
-{
-  name: "CEM Guinardó",
-  lat: 41.4188, lng: 2.1734,
-  offers: [
-    {formule:"Quota Adult", prix:"55,85 €/mois", acces:"Piscine + fitness", remarque:""},
-    {formule:"Quota Jove", prix:"43,85 €/mois", acces:"Accès complet", remarque:""},
-    {formule:"Quota Senior", prix:"34,86 €/mois", acces:"Accès complet", remarque:""}
+    { formule:"Cuota ONE", prix:"≈ 29,90 €/mois", acces:"Club local", remarque:"Sans engagement" }
   ]
 }
 ];
@@ -252,23 +204,31 @@ gyms.forEach(gym => {
   const d = distanceKm(gym.lat, gym.lng);
   const inside = d <= 2;
 
-  const iconUrl = inside
-    ? "https://maps.gstatic.com/mapfiles/ms2/micons/green.png"
-    : "https://maps.gstatic.com/mapfiles/ms2/micons/red.png";
-
-  L.marker([gym.lat, gym.lng], {
-    icon: L.icon({ iconUrl, iconSize:[28,28] })
+  L.circleMarker([gym.lat, gym.lng], {
+    radius: 8,
+    fillColor: inside ? "#2ecc71" : "#e74c3c",
+    color: "#ffffff",
+    weight: 2,
+    fillOpacity: 0.9
   })
   .addTo(map)
+  .bindTooltip(gym.name, { direction: "top", offset: [0,-10] })
   .on("click", () => {
     document.getElementById("panel").innerHTML = `
+      <button class="close-btn" onclick="closePanel()">✖</button>
       <h2>${gym.name}</h2>
+
+      <p><strong>Adresse :</strong><br>${gym.address}</p>
+
       <span class="badge ${inside ? "inside" : "outside"}">
         ${inside ? "Dans le périmètre (≤ 2 km)" : "Hors périmètre (> 2 km)"}
       </span>
+
       <p><strong>Distance :</strong> ${d} km</p>
+
       ${renderOffers(gym.offers)}
     `;
+    document.getElementById("panel").style.display = "block";
   });
 });
 </script>
