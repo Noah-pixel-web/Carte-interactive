@@ -11,58 +11,69 @@
 html, body {
   margin: 0;
   height: 100%;
-  font-family: Arial, sans-serif;
+  font-family: Arial, Helvetica, sans-serif;
 }
 
 #map {
   height: 100%;
-  width: 100%;
+  width: calc(100% - 480px);
 }
 
-#info {
+#panel {
   position: fixed;
-  bottom: 20px;
-  left: 20px;
-  background: white;
-  padding: 15px;
-  border-radius: 10px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-  max-width: 420px;
-  max-height: 70%;
+  top: 0;
+  right: 0;
+  width: 480px;
+  height: 100%;
+  background: #fff;
+  box-shadow: -4px 0 15px rgba(0,0,0,0.25);
+  padding: 20px;
   overflow-y: auto;
-  display: none;
 }
 
-#info h3 {
+#panel h2 {
   margin-top: 0;
   color: #ff6a00;
 }
 
-#info table {
+.badge {
+  display: inline-block;
+  padding: 6px 10px;
+  margin: 5px 5px 5px 0;
+  font-size: 12px;
+  border-radius: 6px;
+  background: #eee;
+}
+
+.inside { background: #c8f7c5; }
+.outside { background: #f7c5c5; }
+
+table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 10px;
-  font-size: 14px;
+  margin-top: 15px;
+  font-size: 13px;
 }
 
-#info th, #info td {
+th, td {
   border: 1px solid #ddd;
   padding: 6px;
+  vertical-align: top;
 }
 
-#info th {
+th {
   background: #ff6a00;
   color: white;
 }
 
-.legend {
+#legend {
   position: fixed;
-  top: 20px;
-  right: 20px;
+  bottom: 20px;
+  left: 20px;
   background: white;
-  padding: 10px;
-  border-radius: 6px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  padding: 12px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
   font-size: 14px;
 }
 </style>
@@ -71,131 +82,194 @@ html, body {
 <body>
 
 <div id="map"></div>
-<div id="info"></div>
+<div id="panel">
+  <h2>Sélectionne une salle</h2>
+  <p>Clique sur un marqueur pour afficher toutes les informations.</p>
+</div>
 
-<div class="legend">
+<div id="legend">
 🟠 L’Orange Bleue<br>
-🟢 Concurrent ≤ 2 km<br>
-🔴 Concurrent > 2 km
+🟢 Salle ≤ 2 km<br>
+🔴 Salle > 2 km
 </div>
 
 <script>
-// ================= ORANGE BLEUE =================
-const orangeBleue = { lat: 41.4305, lng: 2.1840 };
+/* ================= PARAMÈTRES ================= */
+const ORANGE_BLEUE = { lat: 41.4305, lng: 2.1840 };
+const RAYON = 2000;
 
-const map = L.map("map").setView([orangeBleue.lat, orangeBleue.lng], 13);
+/* ================= CARTE ================= */
+const map = L.map("map").setView([ORANGE_BLEUE.lat, ORANGE_BLEUE.lng], 13);
 
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-  attribution: "© OpenStreetMap"
-}).addTo(map);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 
-L.marker([orangeBleue.lat, orangeBleue.lng], {
+// Marqueur Orange Bleue
+L.marker([ORANGE_BLEUE.lat, ORANGE_BLEUE.lng], {
   icon: L.icon({
     iconUrl: "https://maps.gstatic.com/mapfiles/ms2/micons/orange.png",
-    iconSize: [32,32],
-    iconAnchor: [16,32]
+    iconSize: [32,32]
   })
 }).addTo(map).bindPopup("🏋️ L’Orange Bleue");
 
-L.circle([orangeBleue.lat, orangeBleue.lng], {
-  radius: 2000,
+L.circle([ORANGE_BLEUE.lat, ORANGE_BLEUE.lng], {
+  radius: RAYON,
   color: "#ff6a00",
-  fillColor: "#ff6a00",
   fillOpacity: 0.15
 }).addTo(map);
 
-// ================= OUTILS =================
+/* ================= OUTILS ================= */
 function distanceKm(lat, lng) {
-  return map.distance([orangeBleue.lat, orangeBleue.lng], [lat, lng]) / 1000;
+  return (map.distance(
+    [ORANGE_BLEUE.lat, ORANGE_BLEUE.lng],
+    [lat, lng]
+  ) / 1000).toFixed(2);
 }
 
-const infoBox = document.getElementById("info");
-
-function showInfo(html) {
-  infoBox.innerHTML = html;
-  infoBox.style.display = "block";
+function renderOffers(offers) {
+  let html = `
+    <table>
+      <tr>
+        <th>Formule</th>
+        <th>Prix</th>
+        <th>Accès inclus</th>
+        <th>Remarques</th>
+      </tr>`;
+  offers.forEach(o => {
+    html += `
+      <tr>
+        <td>${o.formule}</td>
+        <td>${o.prix}</td>
+        <td>${o.acces}</td>
+        <td>${o.remarque}</td>
+      </tr>`;
+  });
+  html += "</table>";
+  return html;
 }
 
-// ================= SALLES =================
+/* ================= DONNÉES SALLES ================= */
 const gyms = [
 {
   name: "Club Esports Fabra Gym",
-  lat: 41.4335,
-  lng: 2.1831,
-  details: `
-  <h3>Club Esports Fabra Gym</h3>
-  <p><strong>Type :</strong> Salle indépendante</p>
-  <p><strong>Distance :</strong> {{DIST}} km</p>
-  <table>
-    <tr><th>Formule</th><th>Prix</th><th>Accès</th><th>Remarques</th></tr>
-    <tr><td>Mensuel</td><td>≈ 50 €</td><td>Musculation & fitness</td><td>Standard</td></tr>
-    <tr><td>Annuel</td><td>Non communiqué</td><td>Complet</td><td>Avantageux</td></tr>
-  </table>`
+  lat: 41.4335, lng: 2.1831,
+  offers: [
+    {formule:"Abonnement mensuel", prix:"≈ 50 € / mois", acces:"Musculation & fitness", remarque:"Tarif indicatif"},
+    {formule:"Abonnement trimestriel", prix:"Non communiqué", acces:"Idem mensuel", remarque:"À demander"},
+    {formule:"Abonnement annuel", prix:"Non communiqué", acces:"Accès complet", remarque:"Plus avantageux"},
+    {formule:"Frais d’inscription", prix:"Variable", acces:"Carte + inscription", remarque:"Parfois offerts"},
+    {formule:"Cours collectifs", prix:"Inclus / option", acces:"Selon formule", remarque:"À confirmer"},
+    {formule:"Accès libre", prix:"Inclus", acces:"Horaires d’ouverture", remarque:""}
+  ]
 },
 {
   name: "Nick Spa & Sport Club",
-  lat: 41.4388,
-  lng: 2.1864,
-  details: `
-  <h3>Nick Spa & Sport Club</h3>
-  <p><strong>Type :</strong> Premium / Spa</p>
-  <p><strong>Distance :</strong> {{DIST}} km</p>
-  <table>
-    <tr><th>Formule</th><th>Prix</th><th>Accès</th><th>Remarques</th></tr>
-    <tr><td>Accès limité</td><td>77,95 €</td><td>Gym + Spa</td><td>Horaires restreints</td></tr>
-    <tr><td>Accès libre</td><td>99,95 €</td><td>Tout inclus</td><td>Premium</td></tr>
-  </table>`
+  lat: 41.4388, lng: 2.1864,
+  offers: [
+    {formule:"Accès limité", prix:"77,95 €/mois", acces:"Gym + installations", remarque:"Créneaux restreints"},
+    {formule:"Accès limité (6 mois)", prix:"≈ 70,16 €/mois", acces:"Même accès", remarque:"Paiement semestriel"},
+    {formule:"Accès libre", prix:"99,95 €/mois", acces:"Gym + spa", remarque:"Full access"},
+    {formule:"Accès libre (6 mois)", prix:"≈ 89,96 €/mois", acces:"Même accès", remarque:"Paiement semestriel"},
+    {formule:"Invitations invités", prix:"Inclus", acces:"Jusqu’à 3 invités", remarque:"Sur réservation"}
+  ]
 },
 {
-  name: "VivaGym Meridiana",
-  lat: 41.4354,
-  lng: 2.1881,
-  details: `
-  <h3>VivaGym Meridiana</h3>
-  <p><strong>Type :</strong> Low-cost</p>
-  <p><strong>Distance :</strong> {{DIST}} km</p>
-  <table>
-    <tr><th>Plan</th><th>Prix</th><th>Accès</th><th>Remarques</th></tr>
-    <tr><td>ONE</td><td>29,90 €</td><td>Club local</td><td>Sans engagement</td></tr>
-  </table>`
+  name: "Gimnàs Sport Club",
+  lat: 41.4269, lng: 2.1795,
+  offers: [
+    {formule:"Abonnement mensuel", prix:"44 € / mois", acces:"Musculation & fitness", remarque:"Tarif standard"},
+    {formule:"Frais d’inscription", prix:"48 €", acces:"Carte + ouverture", remarque:"Unique"},
+    {formule:"Séance ponctuelle", prix:"15 €", acces:"Entrée unique", remarque:"Sans abonnement"}
+  ]
 },
 {
   name: "Puro Impacto",
-  lat: 41.4298,
-  lng: 2.1762,
-  details: `
-  <h3>Puro Impacto</h3>
-  <p><strong>Type :</strong> Sports de combat</p>
-  <p><strong>Distance :</strong> {{DIST}} km</p>
-  <table>
-    <tr><th>Pack</th><th>Prix</th><th>Accès</th><th>Remarques</th></tr>
-    <tr><td>Fitness</td><td>45 €</td><td>Muscu</td><td>+ inscription</td></tr>
-    <tr><td>Fight Club</td><td>79 €</td><td>Boxe / MMA</td><td>Spécialisé</td></tr>
-  </table>`
+  lat: 41.4298, lng: 2.1762,
+  offers: [
+    {formule:"Fitness – 1 mois", prix:"45 €/mois", acces:"Muscu & cardio", remarque:"+ matrícula 50 €"},
+    {formule:"Fitness – 12 mois", prix:"≈ 33,75 €/mois", acces:"Muscu & cardio", remarque:"Paiement anticipé"},
+    {formule:"Fight Club", prix:"79 €/mois", acces:"Sports de combat", remarque:"Boxe / MMA"},
+    {formule:"Elite Combat", prix:"119,90 €/mois", acces:"Combat complet", remarque:"Premium"},
+    {formule:"Mantenimiento", prix:"15 €/mois", acces:"Dossier actif", remarque:""}
+  ]
+},
+{
+  name: "VivaGym Meridiana",
+  lat: 41.4354, lng: 2.1881,
+  offers: [
+    {formule:"Cuota ONE", prix:"≈ 29,90 €/mois", acces:"Club local", remarque:"Sans engagement"},
+    {formule:"Cuota FLEX", prix:"≈ 34,90 €/mois", acces:"Zone", remarque:"Flexible"},
+    {formule:"Cuota PRIME", prix:"≈ 37 €/mois", acces:"Tous clubs", remarque:"Premium"},
+    {formule:"Pass 1 jour", prix:"≈ 9–10 €", acces:"1 journée", remarque:"Test"}
+  ]
+},
+{
+  name: "VivaGym Pegàs",
+  lat: 41.4317, lng: 2.1916,
+  offers: [
+    {formule:"Cuota ONE", prix:"≈ 29,90 €/mois", acces:"Club local", remarque:"Basique"},
+    {formule:"Cuota FLEX", prix:"≈ 34,90 €/mois", acces:"Zone", remarque:""},
+    {formule:"Cuota PRIME", prix:"≈ 37 €/mois", acces:"Tous clubs", remarque:""}
+  ]
+},
+{
+  name: "Entrena-T 24h Sant Andreu",
+  lat: 41.4361, lng: 2.1889,
+  offers: [
+    {formule:"Cuota mensual", prix:"47,90 €/mois", acces:"24h/24 – 7j/7", remarque:"Sans engagement"},
+    {formule:"Cuota ahorro", prix:"39,92 €/mois", acces:"Accès complet", remarque:"Prépayé"},
+    {formule:"Promo mensuelle", prix:"≈ 7,18 €", acces:"Accès complet", remarque:"Offre ponctuelle"}
+  ]
+},
+{
+  name: "Club Natació Sant Andreu",
+  lat: 41.4359, lng: 2.1853,
+  offers: [
+    {formule:"Abonnement mensuel", prix:"≈ 48,80 €", acces:"Piscine + gym", remarque:""},
+    {formule:"Entrée ponctuelle", prix:"≈ 7,40 €", acces:"1 journée", remarque:""},
+    {formule:"Soci juvenil", prix:"≈ 32,91 €", acces:"Installations", remarque:"Jeunes"}
+  ]
+},
+{
+  name: "Cobosu Gym Station",
+  lat: 41.4282, lng: 2.1813,
+  offers: [
+    {formule:"Tarifs", prix:"Non publiés", acces:"—", remarque:"Contact direct"}
+  ]
+},
+{
+  name: "CEM Guinardó",
+  lat: 41.4188, lng: 2.1734,
+  offers: [
+    {formule:"Quota Adult", prix:"55,85 €/mois", acces:"Piscine + fitness", remarque:""},
+    {formule:"Quota Jove", prix:"43,85 €/mois", acces:"Accès complet", remarque:""},
+    {formule:"Quota Senior", prix:"34,86 €/mois", acces:"Accès complet", remarque:""}
+  ]
 }
 ];
 
-// ================= MARQUEURS =================
+/* ================= MARQUEURS ================= */
 gyms.forEach(gym => {
   const d = distanceKm(gym.lat, gym.lng);
   const inside = d <= 2;
 
-  const icon = L.icon({
-    iconUrl: inside
-      ? "https://maps.gstatic.com/mapfiles/ms2/micons/green.png"
-      : "https://maps.gstatic.com/mapfiles/ms2/micons/red.png",
-    iconSize: [28,28],
-    iconAnchor: [14,28]
-  });
+  const iconUrl = inside
+    ? "https://maps.gstatic.com/mapfiles/ms2/micons/green.png"
+    : "https://maps.gstatic.com/mapfiles/ms2/micons/red.png";
 
-  L.marker([gym.lat, gym.lng], { icon })
-    .addTo(map)
-    .on("click", () => {
-      showInfo(
-        gym.details.replace("{{DIST}}", d.toFixed(2)) +
-        `<p><strong>Zone :</strong> ${inside ? "Dans le périmètre (≤ 2 km)" : "Hors périmètre (> 2 km)"}</p>`
-      );
-    });
+  L.marker([gym.lat, gym.lng], {
+    icon: L.icon({ iconUrl, iconSize:[28,28] })
+  })
+  .addTo(map)
+  .on("click", () => {
+    document.getElementById("panel").innerHTML = `
+      <h2>${gym.name}</h2>
+      <span class="badge ${inside ? "inside" : "outside"}">
+        ${inside ? "Dans le périmètre (≤ 2 km)" : "Hors périmètre (> 2 km)"}
+      </span>
+      <p><strong>Distance :</strong> ${d} km</p>
+      ${renderOffers(gym.offers)}
+    `;
+  });
 });
 </script>
 
