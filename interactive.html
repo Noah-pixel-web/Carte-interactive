@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Carte concurrentielle – L’Orange Bleue</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<style>
+html, body {
+  margin: 0;
+  height: 100%;
+  font-family: Arial, sans-serif;
+}
+
+#map {
+  height: 100%;
+  width: 100%;
+}
+
+#info {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  background: white;
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  max-width: 360px;
+  display: none;
+}
+
+#info h3 {
+  margin-top: 0;
+  color: #ff6a00;
+}
+
+.legend {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: white;
+  padding: 10px;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  font-size: 14px;
+}
+</style>
+</head>
+
+<body>
+
+<div id="map"></div>
+<div id="info"></div>
+
+<div class="legend">
+  🟠 L’Orange Bleue<br>
+  🟢 Salle ≤ 2 km<br>
+  🔴 Salle > 2 km
+</div>
+
+<script>
+// ================= ORANGE BLEUE =================
+const orangeBleue = {
+  name: "L’Orange Bleue",
+  lat: 41.4305,
+  lng: 2.1840
+};
+
+const map = L.map("map").setView([orangeBleue.lat, orangeBleue.lng], 13);
+
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  attribution: "© OpenStreetMap"
+}).addTo(map);
+
+// Marqueur Orange Bleue
+L.marker([orangeBleue.lat, orangeBleue.lng], {
+  icon: L.icon({
+    iconUrl: "https://maps.gstatic.com/mapfiles/ms2/micons/orange.png",
+    iconSize: [32,32],
+    iconAnchor: [16,32]
+  })
+}).addTo(map).bindPopup("🏋️ L’Orange Bleue");
+
+// Cercle 2 km
+L.circle([orangeBleue.lat, orangeBleue.lng], {
+  radius: 2000,
+  color: "#ff6a00",
+  fillColor: "#ff6a00",
+  fillOpacity: 0.15
+}).addTo(map);
+
+// ================= OUTILS =================
+function distanceKm(lat, lng) {
+  return map.distance(
+    [orangeBleue.lat, orangeBleue.lng],
+    [lat, lng]
+  ) / 1000;
+}
+
+const infoBox = document.getElementById("info");
+
+function showInfo(html) {
+  infoBox.innerHTML = html;
+  infoBox.style.display = "block";
+}
+
+// ================= SALLES =================
+const gyms = [
+  { name:"Club Esports Fabra Gym", lat:41.4335, lng:2.1831, prix:"≈ 50 €/mois", type:"Fitness" },
+  { name:"Nick Spa & Sport Club", lat:41.4388, lng:2.1864, prix:"77,95 – 99,95 €", type:"Gym + Spa" },
+  { name:"Gimnàs Sport Club", lat:41.4269, lng:2.1795, prix:"44 €/mois", type:"Fitness" },
+  { name:"Puro Impacto", lat:41.4298, lng:2.1762, prix:"45 – 119 €", type:"Sports de combat" },
+  { name:"VivaGym Meridiana", lat:41.4354, lng:2.1881, prix:"≈ 29,90 €", type:"Low-cost" },
+  { name:"VivaGym Pegàs", lat:41.4317, lng:2.1916, prix:"≈ 29,90 €", type:"Low-cost" },
+  { name:"Entrena-T 24h", lat:41.4361, lng:2.1889, prix:"47,90 €", type:"24h/24" },
+  { name:"Club Natació Sant Andreu", lat:41.4359, lng:2.1853, prix:"≈ 48 €", type:"Piscine + gym" },
+  { name:"Cobosu Gym Station", lat:41.4282, lng:2.1813, prix:"Sur demande", type:"Indépendant" },
+  { name:"CEM Guinardó", lat:41.4188, lng:2.1734, prix:"55,85 €", type:"Municipal" },
+  { name:"DIR Alcúdia", lat:41.4381, lng:2.1820, prix:"≈ 45 €", type:"Premium" },
+  { name:"DIR Maragall", lat:41.4219, lng:2.1730, prix:"≈ 48 €", type:"Premium" },
+  { name:"Synergym Fabra i Puig", lat:41.4332, lng:2.1819, prix:"≈ 22 €", type:"Low-cost" },
+  { name:"Synergym Maragall", lat:41.4214, lng:2.1708, prix:"≈ 23 €", type:"Low-cost" },
+  { name:"CEM Cotxeres Borbó", lat:41.4290, lng:2.1745, prix:"Sur place", type:"Municipal" },
+  { name:"Forus Can Dragó", lat:41.4323, lng:2.1701, prix:"≈ 68 €", type:"Premium" }
+];
+
+// ================= MARQUEURS =================
+gyms.forEach(gym => {
+  const d = distanceKm(gym.lat, gym.lng);
+  const inside = d <= 2;
+
+  const icon = L.icon({
+    iconUrl: inside
+      ? "https://maps.gstatic.com/mapfiles/ms2/micons/green.png"
+      : "https://maps.gstatic.com/mapfiles/ms2/micons/red.png",
+    iconSize: [28,28],
+    iconAnchor: [14,28]
+  });
+
+  L.marker([gym.lat, gym.lng], {icon})
+    .addTo(map)
+    .bindPopup(gym.name)
+    .on("click", () => {
+      showInfo(`
+        <h3>${gym.name}</h3>
+        <p><strong>Type :</strong> ${gym.type}</p>
+        <p><strong>Prix :</strong> ${gym.prix}</p>
+        <p><strong>Distance :</strong> ${d.toFixed(2)} km</p>
+        <p><strong>Zone :</strong> ${inside ? "Dans le périmètre" : "Hors périmètre"}</p>
+      `);
+    });
+});
+</script>
+
+</body>
+</html>
